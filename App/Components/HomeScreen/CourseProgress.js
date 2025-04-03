@@ -13,16 +13,18 @@ export default function CourseProgress() {
     const navigation = useNavigation();
     const { theme } = useContext(ThemeContext); // Dark mode support
     const [progressCourseList, setProgressCourseList] = useState([]);
+    const [refresh, setRefresh] = useState(false); // Trigger re-render
 
     useEffect(() => {
         if (user) {
             GetAllProgressCourseList();
         }
-    }, [user]);
+    }, [user, refresh]); // Added refresh dependency to update progress
 
     const GetAllProgressCourseList = async () => {
         try {
             const response = await GetAllProgressCourse(user.primaryEmailAddress.emailAddress);
+            console.log("Fetched Progress Data:", response);
             setProgressCourseList(response?.uSerEnrolledCourses || []);
         } catch (error) {
             console.error("Error fetching progress courses:", error);
@@ -35,12 +37,16 @@ export default function CourseProgress() {
 
             <FlatList
                 data={progressCourseList}
-                keyExtractor={(item, index) => index.toString()} // Added keyExtractor
+                keyExtractor={(item, index) => index.toString()} // Ensure unique key
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                extraData={refresh} // Ensure list re-renders when progress updates
                 renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => navigation.navigate('course-detail', { course: item.course })}>
-                        <CourseItem item={item.course} completedChapter={item?.completedChapter?.length} />
+                    <TouchableOpacity onPress={() => {
+                        navigation.navigate('course-detail', { course: item.course });
+                        setRefresh(!refresh); // Force re-fetch on navigation
+                    }}>
+                        <CourseItem item={item.course} completedChapter={item?.completedChapter?.length || 0} />
                     </TouchableOpacity>
                 )}
             />

@@ -5,65 +5,60 @@ import {
   StyleSheet, 
   SafeAreaView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   useColorScheme
 } from 'react-native';
 import Colors from '../Utils/Colors';
-import { getUserQuizAttempts, GetUserQuizPerformance } from '../Services';
+import { GetUserQuizPerformance } from '../Services';
 import { useUser } from '@clerk/clerk-expo';
 
 const QuizResultsScreen = ({ route, navigation }) => {
-  const { score, totalQuestions, quizTitle, courseId } = route.params;
+  const { score, totalQuestions, quizTitle } = route.params;
   const [userRank, setUserRank] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userPerformance, setUserPerformance] = useState(null);
   const { user } = useUser();
   const colorScheme = useColorScheme(); // Detect system color scheme
-  
+
   const percentScore = Math.round((score / totalQuestions) * 100);
-  
+
   useEffect(() => {
     if (user && user.primaryEmailAddress) {
       fetchUserPerformance();
     }
   }, [user]);
-  
+
   const fetchUserPerformance = async () => {
     try {
       setIsLoading(true);
       const userEmail = user.primaryEmailAddress.emailAddress;
       const performanceData = await GetUserQuizPerformance(userEmail);
-      
+
       if (performanceData && performanceData.userDetail) {
-        setUserPerformance(performanceData.userDetail);
-        
         const pointsEarned = calculatePointsEarned(score, totalQuestions);
         setUserRank({
           position: estimateRankPosition(performanceData.userDetail.point),
-          pointsEarned: pointsEarned
+          pointsEarned: pointsEarned,
         });
       }
-      
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching user performance:', error);
       setIsLoading(false);
     }
   };
-  
+
   const calculatePointsEarned = (score, total) => {
     const basePoints = 10;
     const scorePercentage = (score / total) * 100;
     let bonusPoints = 0;
-    
+
     if (scorePercentage >= 90) bonusPoints = 15;
     else if (scorePercentage >= 80) bonusPoints = 10;
     else if (scorePercentage >= 70) bonusPoints = 5;
-    
-    return (score * basePoints) + bonusPoints;
+
+    return score * basePoints + bonusPoints;
   };
-  
+
   const estimateRankPosition = (totalPoints) => {
     if (totalPoints > 500) return "Top 10%";
     if (totalPoints > 300) return "Top 25%";
@@ -86,7 +81,7 @@ const QuizResultsScreen = ({ route, navigation }) => {
       <Text style={[styles.resultMessage, { color: colorScheme === 'dark' ? Colors.DARK_PRIMARY : Colors.PRIMARY }]}>
         {getResultMessage()}
       </Text>
-      
+
       <View style={[
         styles.scoreContainer,
         { backgroundColor: colorScheme === 'dark' ? Colors.DARK_CARD : Colors.LIGHT_PRIMARY }
@@ -100,19 +95,8 @@ const QuizResultsScreen = ({ route, navigation }) => {
         <Text style={[styles.percentageText, { color: colorScheme === 'dark' ? Colors.DARK_PRIMARY : Colors.PRIMARY }]}>
           {percentScore}%
         </Text>
-        
-        <View style={styles.progressBarContainer}>
-          <View 
-            style={[
-              styles.progressBar, 
-              { width: `${percentScore}%` },
-              percentScore >= 70 ? styles.highScore : 
-              percentScore >= 40 ? styles.mediumScore : styles.lowScore
-            ]} 
-          />
-        </View>
       </View>
-      
+
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.PRIMARY} />
@@ -128,7 +112,6 @@ const QuizResultsScreen = ({ route, navigation }) => {
           <Text style={[styles.leaderboardTitle, { color: colorScheme === 'dark' ? Colors.DARK_PRIMARY : Colors.PRIMARY }]}>
             Leaderboard Update
           </Text>
-          
           <View style={styles.pointsEarnedContainer}>
             <Text style={[styles.pointsEarnedLabel, { color: colorScheme === 'dark' ? Colors.DARK_GRAY : Colors.GRAY }]}>
               Points Earned
@@ -137,7 +120,6 @@ const QuizResultsScreen = ({ route, navigation }) => {
               +{userRank.pointsEarned}
             </Text>
           </View>
-          
           <View style={styles.rankContainer}>
             <Text style={[styles.rankLabel, { color: colorScheme === 'dark' ? Colors.DARK_GRAY : Colors.GRAY }]}>
               Your Standing
@@ -146,21 +128,9 @@ const QuizResultsScreen = ({ route, navigation }) => {
               {userRank.position}
             </Text>
           </View>
-          
-          <TouchableOpacity
-            style={[
-              styles.viewLeaderboardButton,
-              { backgroundColor: colorScheme === 'dark' ? Colors.DARK_CARD : Colors.LIGHT_PRIMARY }
-            ]}
-            onPress={() => navigation.navigate('LeaderBoard')}
-          >
-            <Text style={[styles.viewLeaderboardText, { color: colorScheme === 'dark' ? Colors.DARK_PRIMARY : Colors.PRIMARY }]}>
-              View Full Leaderboard
-            </Text>
-          </TouchableOpacity>
         </View>
       ) : null}
-      
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[
@@ -193,7 +163,104 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // ...existing styles...
+  quizTitle: {
+    fontSize: 24,
+    fontFamily: 'outfit-bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  resultMessage: {
+    fontSize: 32,
+    fontFamily: 'outfit-bold',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  scoreContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 30,
+    padding: 20,
+    borderRadius: 16,
+  },
+  scoreLabel: {
+    fontSize: 18,
+    fontFamily: 'outfit-medium',
+    marginBottom: 10,
+  },
+  scoreValue: {
+    fontSize: 48,
+    fontFamily: 'outfit-bold',
+  },
+  percentageText: {
+    fontSize: 24,
+    fontFamily: 'outfit-medium',
+    marginBottom: 20,
+  },
+  leaderboardPreview: {
+    width: '100%',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+  },
+  leaderboardTitle: {
+    fontSize: 18,
+    fontFamily: 'outfit-bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  pointsEarnedContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  pointsEarnedLabel: {
+    fontSize: 16,
+    fontFamily: 'outfit-medium',
+  },
+  pointsEarnedValue: {
+    fontSize: 18,
+    fontFamily: 'outfit-bold',
+    color: '#4CAF50',
+  },
+  rankContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  rankLabel: {
+    fontSize: 16,
+    fontFamily: 'outfit-medium',
+  },
+  rankValue: {
+    fontSize: 18,
+    fontFamily: 'outfit-bold',
+  },
+  buttonContainer: {
+    width: '100%',
+    marginTop: 10,
+  },
+  buttonSecondary: {
+    padding: 15,
+    borderRadius: 10,
+    width: '100%',
+    borderWidth: 1,
+  },
+  buttonSecondaryText: {
+    textAlign: 'center',
+    fontFamily: 'outfit-medium',
+    fontSize: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontFamily: 'outfit',
+  },
 });
 
 export default QuizResultsScreen;
